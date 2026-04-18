@@ -252,14 +252,36 @@ async function enviar() {
     fecha_envio: new Date().toLocaleString('es-AR')
   };
 
-  try {
-    await fetch(WEBHOOK_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    document.getElementById('success').style.display = 'block';
-    document.querySelector('.submit-btn').disabled = true;
-    document.querySelector('.submit-btn').style.opacity = '0.5';
-  } catch(e) {
-    alert('Error al enviar. Por favor escribinos a andrea.gaetan@sigaturismo.com');
+  // Enviamos via formulario oculto para evitar CORS
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = WEBHOOK_URL;
+  form.target = 'iframe-envio';
+  form.style.display = 'none';
+
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'data';
+  input.value = JSON.stringify(payload);
+  form.appendChild(input);
+
+  // iframe oculto para capturar la respuesta sin redirigir
+  let iframe = document.getElementById('iframe-envio');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.name = 'iframe-envio';
+    iframe.id = 'iframe-envio';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
   }
+
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+
+  document.getElementById('success').style.display = 'block';
+  document.querySelector('.submit-btn').disabled = true;
+  document.querySelector('.submit-btn').style.opacity = '0.5';
 }
 </script>
 </body>
