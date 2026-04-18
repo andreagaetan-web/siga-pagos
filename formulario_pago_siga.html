@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Informar Pago – Siga Turismo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f4f4f4; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 30px 16px; }
+  .card { background: #fff; border-radius: 8px; max-width: 620px; width: 100%; box-shadow: 0 2px 12px rgba(0,0,0,0.10); overflow: hidden; }
+  .header { background: #006400; padding: 18px 24px; }
+  .header h1 { color: #fff; font-size: 18px; font-weight: bold; }
+  .header p { color: #a8f0a8; font-size: 13px; margin-top: 2px; }
+  .body { padding: 24px; }
+  .cliente-badge { background: #e8f5e9; border-left: 4px solid #00A509; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 20px; font-size: 14px; color: #006400; font-weight: bold; }
+  label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; margin-top: 14px; }
+  input, select, textarea { width: 100%; padding: 9px 11px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; background: #fff; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #00A509; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 2fr 1fr 1.2fr; gap: 10px; }
+  .linea-wrap { border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px; margin-bottom: 10px; position: relative; background: #fafafa; }
+  .remove-btn { position: absolute; top: 8px; right: 10px; background: none; border: none; color: #c0392b; font-size: 18px; cursor: pointer; line-height: 1; }
+  .add-btn { width: 100%; padding: 9px; border: 1.5px dashed #00A509; border-radius: 5px; background: none; color: #006400; font-size: 14px; cursor: pointer; margin-top: 4px; margin-bottom: 16px; }
+  .add-btn:hover { background: #e8f5e9; }
+  .totales { background: #f0f9f0; border: 1px solid #b2dfb2; border-radius: 6px; padding: 12px 16px; margin: 12px 0 18px; }
+  .totales h3 { font-size: 13px; color: #006400; margin-bottom: 8px; }
+  .tot-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+  .upload-zone { border: 1.5px dashed #aaa; border-radius: 6px; padding: 22px; text-align: center; cursor: pointer; margin-top: 6px; color: #777; font-size: 13px; }
+  .upload-zone:hover { border-color: #00A509; background: #f0f9f0; }
+  .fname { font-size: 12px; color: #006400; margin-top: 6px; }
+  .submit-btn { width: 100%; padding: 13px; background: #00A509; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+  .submit-btn:hover { background: #006400; }
+  .success { display: none; background: #e8f5e9; border: 1px solid #00A509; border-radius: 6px; padding: 18px; text-align: center; color: #006400; font-size: 15px; margin-top: 14px; }
+  .footer { font-size: 12px; color: #aaa; margin-top: 18px; text-align: center; }
+  .section-title { font-size: 13px; font-weight: bold; color: #006400; text-transform: uppercase; letter-spacing: 0.04em; margin: 20px 0 6px; border-bottom: 1px solid #e0e0e0; padding-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Siga Turismo S.A.</h1>
+    <p>Informe de pago – Cobranzas</p>
+  </div>
+  <div class="body">
+
+    <div class="cliente-badge" id="cliente-badge">Cargando...</div>
+    <input type="hidden" id="cliente-hidden" />
+
+    <div class="section-title">Líneas de pago</div>
+    <div id="lineas-container"></div>
+    <button class="add-btn" onclick="agregarLinea()">+ Agregar línea de pago</button>
+
+    <div class="totales" id="totales" style="display:none">
+      <h3>Resumen</h3>
+      <div id="totales-content"></div>
+    </div>
+
+    <div class="section-title">Comprobante de pago</div>
+    <div class="upload-zone" onclick="document.getElementById('comp').click()">
+      <div style="font-size:24px;margin-bottom:6px;">📎</div>
+      Hacé clic para adjuntar el comprobante<br>
+      <span style="font-size:11px;">PDF, JPG o PNG – máx. 10 MB</span>
+      <div class="fname" id="fname"></div>
+    </div>
+    <input type="file" id="comp" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="mostrarArchivo(this)" />
+
+    <label style="margin-top:14px;">Observaciones (opcional)</label>
+    <textarea id="obs" rows="2" placeholder="Nro. de transferencia, aclaración, etc."></textarea>
+
+    <button class="submit-btn" onclick="enviar()">Enviar informe de pago</button>
+    <div class="success" id="success">
+      ✅ ¡Informe enviado correctamente!<br>
+      <span style="font-size:13px;color:#555;">Nos comunicaremos a la brevedad para confirmar la imputación.</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Siga Turismo S.A. &mdash; Departamento de Cobranzas &mdash; andrea.gaetan@sigaturismo.com</div>
+
+<script>
+const MEDIOS = ["Santander PES","Santander USD","Macro PES","Macro USD","Galicia","Bancor","ICBC"];
+const MONEDAS = ["PES","USD","EUR"];
+let count = 0;
+let WEBHOOK_URL = "https://TU-INSTANCIA.app.n8n.cloud/webhook/informar-pago"; // ← reemplazar
+
+// Leer parámetros de la URL
+const params = new URLSearchParams(window.location.search);
+const clienteNombre = params.get('cliente') || '';
+const filesParam = params.get('files') || '';
+
+document.getElementById('cliente-hidden').value = clienteNombre;
+document.getElementById('cliente-badge').textContent = clienteNombre
+  ? '🏢 ' + decodeURIComponent(clienteNombre)
+  : 'Cliente no especificado';
+
+// Pre-agregar líneas por cada file
+const filesList = filesParam ? filesParam.split(',') : [''];
+filesList.forEach(f => agregarLinea(f.trim()));
+
+function agregarLinea(filePreset) {
+  count++;
+  const id = count;
+  const div = document.createElement('div');
+  div.className = 'linea-wrap';
+  div.id = 'linea-' + id;
+  div.innerHTML = `
+    <button class="remove-btn" onclick="quitarLinea(${id})">×</button>
+    <div class="row3">
+      <div>
+        <label>File / Expediente</label>
+        <input type="text" id="file-${id}" value="${filePreset||''}" placeholder="Ej: 12345" oninput="recalcular()" />
+      </div>
+      <div>
+        <label>Moneda</label>
+        <select id="mon-${id}" onchange="recalcular()">
+          ${MONEDAS.map(m=>`<option>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label>Importe</label>
+        <input type="number" id="imp-${id}" min="0" step="0.01" placeholder="0,00" oninput="recalcular()" />
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label>Medio de pago</label>
+      <select id="med-${id}" onchange="recalcular()">
+        <option value="">— Seleccioná —</option>
+        ${MEDIOS.map(m=>`<option>${m}</option>`).join('')}
+      </select>
+    </div>
+  `;
+  document.getElementById('lineas-container').appendChild(div);
+  recalcular();
+}
+
+function quitarLinea(id) {
+  document.getElementById('linea-'+id).remove();
+  recalcular();
+}
+
+function recalcular() {
+  const totales = {};
+  for (let i = 1; i <= count; i++) {
+    const impEl = document.getElementById('imp-'+i);
+    const monEl = document.getElementById('mon-'+i);
+    if (!impEl || !monEl) continue;
+    const val = parseFloat(impEl.value) || 0;
+    if (val > 0) totales[monEl.value] = (totales[monEl.value]||0) + val;
+  }
+  const div = document.getElementById('totales');
+  const content = document.getElementById('totales-content');
+  const keys = Object.keys(totales);
+  if (!keys.length) { div.style.display='none'; return; }
+  div.style.display='block';
+  content.innerHTML = keys.map(k =>
+    `<div class="tot-row"><span>Total ${k}</span><span><strong>${k} ${totales[k].toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span></div>`
+  ).join('');
+}
+
+function mostrarArchivo(input) {
+  if (input.files[0]) document.getElementById('fname').textContent = '✓ ' + input.files[0].name;
+}
+
+async function enviar() {
+  const cliente = document.getElementById('cliente-hidden').value;
+  const lineas = [];
+  for (let i = 1; i <= count; i++) {
+    const fileEl = document.getElementById('file-'+i);
+    if (!fileEl) continue;
+    const imp = parseFloat(document.getElementById('imp-'+i).value)||0;
+    if (imp > 0) lineas.push({
+      file: fileEl.value,
+      moneda: document.getElementById('mon-'+i).value,
+      importe: imp,
+      medio: document.getElementById('med-'+i).value
+    });
+  }
+  if (!lineas.length) { alert('Completá al menos una línea de pago con importe.'); return; }
+
+  const compFile = document.getElementById('comp').files[0];
+  let compBase64 = '';
+  let compNombre = '';
+  if (compFile) {
+    compNombre = compFile.name;
+    compBase64 = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.readAsDataURL(compFile);
+    });
+  }
+
+  const payload = {
+    cliente,
+    lineas,
+    observaciones: document.getElementById('obs').value,
+    comprobante_nombre: compNombre,
+    comprobante_base64: compBase64,
+    fecha_envio: new Date().toLocaleString('es-AR')
+  };
+
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    document.getElementById('success').style.display = 'block';
+    document.querySelector('.submit-btn').disabled = true;
+    document.querySelector('.submit-btn').style.opacity = '0.5';
+  } catch(e) {
+    alert('Error al enviar. Por favor intentá de nuevo o escribinos a andrea.gaetan@sigaturismo.com');
+  }
+}
+</script>
+</body>
+</html>
